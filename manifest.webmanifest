@@ -1,0 +1,12 @@
+{
+  "name": "مدرسة السياقة",
+  "short_name": "مدرسة السياقة",
+  "description": "منصة عربية لتعلم إشارات المرور وقواعد القيادة واختبار الجاهزية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./#home",
+  "display": "standalone",
+  "background_color": "#fbfaf7",
+  "theme_color": "#0a3448",
+  "icons": [{"src":"assets/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

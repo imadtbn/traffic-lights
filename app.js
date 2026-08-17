@@ -1,141 +1,44 @@
-import { trafficSigns } from './data/signs.js';
+import { signs, basicQuestions, advancedQuestions, articles } from './data/content.js';
 
-const state = { filter: 'all', query: '' };
-const grid = document.querySelector('#signs-grid');
-const emptyState = document.querySelector('#empty-state');
-const resultsCount = document.querySelector('#results-count');
-const searchInput = document.querySelector('#search-input');
-const clearSearch = document.querySelector('#clear-search');
-const dialog = document.querySelector('#sign-dialog');
-const dialogImage = document.querySelector('#dialog-image');
-const dialogTitle = document.querySelector('#dialog-title');
-const dialogCategory = document.querySelector('#dialog-category');
-const dialogDescription = document.querySelector('#dialog-description');
-const dialogAction = document.querySelector('#dialog-action-text');
-const dialogSource = document.querySelector('#dialog-source');
+const app = document.querySelector('#app');
+const storeKey = 'driving-school-test-history-v2';
+const routeLabels = {home:'الرئيسية',signals:'إشارات المرور',rules:'قواعد القيادة',safety:'الأمان',articles:'المقالات',tests:'الاختبارات',advanced:'اختبار الرخصة'};
+let currentRoute = getRoute();
+let activeFilter = 'all';
+let searchTerm = '';
+let session = null;
 
-const categoryTone = { warning: 'warning', regulatory: 'regulatory', mandatory: 'mandatory', guidance: 'guidance' };
-
-function getVisibleSigns() {
-  const query = state.query.trim().toLocaleLowerCase('ar');
-  return trafficSigns.filter((sign) => {
-    const categoryMatch = state.filter === 'all' || sign.category === state.filter;
-    const text = `${sign.title} ${sign.english} ${sign.description} ${sign.action}`.toLocaleLowerCase('ar');
-    return categoryMatch && (!query || text.includes(query));
-  });
-}
-
-function renderSignVisual(sign) {
-  if (sign.image) {
-    return `<img src="${sign.image}" alt="${sign.alt}" loading="lazy" />`;
-  }
-  return `<div class="sign-illustration tone-${sign.tone}" aria-label="تمثيل بصري لإشارة ${sign.title}"><span>${sign.symbol}</span><small>${sign.english}</small></div>`;
-}
-
-function renderCards() {
-  const visibleSigns = getVisibleSigns();
-  resultsCount.textContent = visibleSigns.length;
-  grid.innerHTML = visibleSigns.map((sign) => `
-    <article class="sign-card" style="--accent:${sign.category === 'warning' ? '#e6aa42' : sign.category === 'mandatory' ? '#317a9b' : sign.category === 'guidance' ? '#4f9d79' : '#d96657'}">
-      <div class="sign-card-media">${renderSignVisual(sign)}<span class="card-number">${String(trafficSigns.indexOf(sign) + 1).padStart(2, '0')}</span></div>
-      <div class="sign-card-content">
-        <span class="sign-type">${sign.categoryLabel}</span>
-        <h3>${sign.title}</h3>
-        <p>${sign.description}</p>
-        <button class="detail-button" type="button" data-sign-id="${sign.id}" aria-label="عرض تفاصيل ${sign.title}">عرض التفاصيل <span aria-hidden="true">←</span></button>
-      </div>
-    </article>
-  `).join('');
-  grid.hidden = visibleSigns.length === 0;
-  emptyState.hidden = visibleSigns.length !== 0;
-}
-
-function setActiveFilter(filter) {
-  state.filter = filter;
-  document.querySelectorAll('[data-filter]').forEach((button) => {
-    const active = button.dataset.filter === filter;
-    button.classList.toggle('is-selected', active);
-    button.setAttribute('aria-pressed', String(active));
-  });
-  renderCards();
-}
-
-function openDetails(id) {
-  const sign = trafficSigns.find((item) => item.id === id);
-  if (!sign) return;
-  dialogTitle.textContent = sign.title;
-  dialogCategory.textContent = `${sign.categoryLabel} · ${sign.english}`;
-  dialogDescription.textContent = sign.description;
-  dialogAction.textContent = sign.action;
-  dialogSource.href = sign.source || '#';
-  dialogSource.hidden = !sign.source;
-  if (sign.image) {
-    dialogImage.src = sign.image;
-    dialogImage.alt = sign.alt;
-  } else {
-    dialogImage.src = 'assets/images/speed-limit.jpg';
-    dialogImage.alt = `صورة توضيحية من مكتبة إشارات المرور مرتبطة بـ ${sign.title}`;
-  }
-  if (typeof dialog.showModal === 'function') dialog.showModal();
-  else dialog.setAttribute('open', '');
-}
-
-document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => setActiveFilter(button.dataset.filter)));
-grid.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-sign-id]');
-  if (button) openDetails(button.dataset.signId);
-});
-searchInput.addEventListener('input', (event) => {
-  state.query = event.target.value;
-  clearSearch.hidden = !state.query;
-  renderCards();
-});
-clearSearch.addEventListener('click', () => {
-  searchInput.value = '';
-  state.query = '';
-  clearSearch.hidden = true;
-  searchInput.focus();
-  renderCards();
-});
-document.querySelector('#reset-filters').addEventListener('click', () => {
-  state.filter = 'all';
-  state.query = '';
-  searchInput.value = '';
-  clearSearch.hidden = true;
-  setActiveFilter('all');
-});
-document.querySelector('#dialog-close').addEventListener('click', () => dialog.close());
-dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
-document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && dialog.open) dialog.close(); });
-
-document.querySelectorAll('.quiz-options button').forEach((button) => button.addEventListener('click', () => {
-  const buttons = document.querySelectorAll('.quiz-options button');
-  buttons.forEach((item) => { item.disabled = true; item.classList.remove('is-correct', 'is-wrong'); });
-  const feedback = document.querySelector('#quiz-feedback');
-  const correct = button.dataset.answer === 'correct';
-  button.classList.add(correct ? 'is-correct' : 'is-wrong');
-  if (!correct) document.querySelector('[data-answer="correct"]').classList.add('is-correct');
-  feedback.textContent = correct ? 'أحسنت. إشارة التوقف تعني توقفاً كاملاً.' : 'ليست الإجابة الصحيحة. إشارة التوقف تتطلب توقفاً كاملاً.';
-  feedback.style.color = correct ? '#2b8753' : '#b64d4d';
-}));
-
-const menuToggle = document.querySelector('.menu-toggle');
-const primaryNav = document.querySelector('#primary-nav');
-menuToggle.addEventListener('click', () => {
-  const isOpen = primaryNav.classList.toggle('is-open');
-  menuToggle.setAttribute('aria-expanded', String(isOpen));
-});
-primaryNav.addEventListener('click', (event) => {
-  if (event.target.matches('a')) { primaryNav.classList.remove('is-open'); menuToggle.setAttribute('aria-expanded', 'false'); }
-});
-
-const sections = [...document.querySelectorAll('main section[id]')];
-const navLinks = [...document.querySelectorAll('.nav-link')];
-const observer = new IntersectionObserver((entries) => {
-  const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-  if (!visible) return;
-  navLinks.forEach((link) => link.classList.toggle('is-active', link.getAttribute('href') === `#${visible.target.id}`));
-}, { rootMargin: '-30% 0px -55% 0px', threshold: [0, .2, .5] });
-sections.forEach((section) => observer.observe(section));
-
-renderCards();
+function getRoute(){ const raw = location.hash.replace(/^#\/?/, '') || 'home'; return raw.split('?')[0] || 'home'; }
+function escapeHTML(value){ return String(value).replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
+function getHistory(){ try{return JSON.parse(localStorage.getItem(storeKey) || '[]')}catch{return []} }
+function saveHistory(entry){ const history=[entry,...getHistory()].slice(0,12); localStorage.setItem(storeKey,JSON.stringify(history)); return history; }
+function categoryClass(sign){ return sign.categoryKey || 'guidance'; }
+function signVisual(sign, large=false){ if(sign.image)return `<img src="${sign.image}" alt="${escapeHTML(sign.alt)}" loading="lazy" />`; return `<div class="illustration tone-${sign.tone} ${large?'illustration-large':''}" role="img" aria-label="تمثيل بصري لإشارة ${escapeHTML(sign.title)}"><span>${sign.symbol}</span><small>${sign.english}</small></div>`; }
+function filteredSigns(){ const q=searchTerm.trim().toLocaleLowerCase('ar'); return signs.filter((sign)=>{const filterOK=activeFilter==='all'||sign.categoryKey===activeFilter;const text=`${sign.title} ${sign.english} ${sign.description}`.toLocaleLowerCase('ar');return filterOK&&(!q||text.includes(q))}); }
+function header(){ return `<header class="site-header"><div class="shell header-inner"><a class="brand" href="#home" aria-label="مدرسة السياقة"><span class="brand-icon">⌁</span><span><strong>مدرسة السياقة</strong><small>تعلم. تدرب. قد بأمان.</small></span></a><button class="mobile-menu" data-action="toggle-menu" aria-expanded="false" aria-controls="main-nav">القائمة <span>☰</span></button><nav id="main-nav" class="main-nav" aria-label="التنقل الرئيسي">${Object.entries(routeLabels).filter(([key])=>!['advanced'].includes(key)).map(([key,label])=>`<a class="${currentRoute===key?'active':''}" href="#${key}">${label}</a>`).join('')}<a class="nav-cta" href="#tests">ابدأ اختبارك <span>←</span></a></nav></div></header>`; }
+function footer(){ return `<footer class="site-footer"><div class="shell footer-grid"><div class="footer-about"><a class="brand footer-brand" href="#home"><span class="brand-icon">⌁</span><strong>مدرسة السياقة</strong></a><p>منصة عربية تساعدك على فهم إشارات المرور وبناء عادات قيادة أكثر أماناً، خطوة بعد خطوة.</p><div class="footer-badges"><span>تعلم مجاني</span><span>صور واقعية</span></div></div><div><h3>استكشف المنصة</h3><a href="#signals">إشارات المرور</a><a href="#rules">قواعد القيادة</a><a href="#safety">نصائح الأمان</a><a href="#articles">المقالات</a></div><div><h3>اختبر جاهزيتك</h3><a href="#tests">الاختبار الأساسي</a><a href="#advanced">اختبار رخصة السياقة</a><a href="#tests">تتبع النتائج</a><a href="#home">عن المنصة</a></div></div><div class="shell footer-bottom"><span>© 2026 مدرسة السياقة</span><span>صُممت للتعلم المسؤول والقيادة الآمنة</span></div></footer>`; }
+function modal(){ return `<div class="modal" id="modal" hidden><div class="modal-backdrop" data-action="close-modal"></div><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" data-action="close-modal" aria-label="إغلاق">×</button><div id="modal-content"></div></div></div>`; }
+function shell(content){ app.innerHTML=`${header()}<main id="page-content">${content}</main>${footer()}${modal()}`; window.scrollTo({top:0,behavior:'instant'}); }
+function eyebrow(text){ return `<p class="eyebrow"><span></span>${text}</p>`; }
+function homePage(){ return `<section class="home-hero"><div class="shell hero-grid"><div class="hero-copy">${eyebrow('منصة التعلم المروري')}<h1>الطريق الآمن<br /><em>يبدأ بفهم</em> الإشارة.</h1><p>تعلم إشارات المرور، طوّر قراراتك على الطريق، واختبر جاهزيتك لرخصة السياقة في تجربة عربية واضحة ومركزة.</p><div class="hero-actions"><a class="button primary" href="#signals">تصفح الإشارات <span>←</span></a><a class="button secondary" href="#tests">ابدأ الاختبار <span>◉</span></a></div><div class="hero-note"><span class="note-mark">✓</span><span><strong>تعلّم بثقة</strong><small>محتوى مبسط وصور واقعية وتمارين متدرجة.</small></span></div></div><div class="hero-art"><div class="hero-art-orbit"></div><div class="hero-photo hero-photo-tall"><img src="assets/images/stop-sign.jpg" alt="إشارة توقف حقيقية" /></div><div class="hero-photo hero-photo-card"><img src="assets/images/yield-sign.jpg" alt="إشارة إعطاء الأولوية حقيقية" /></div><div class="hero-label"><span>01</span><strong>افهم<br />الإشارة</strong></div><div class="hero-route" aria-hidden="true"><i></i><i></i><i></i></div></div></div></section><section class="stats-strip"><div class="shell stats-grid"><div><strong>10</strong><span>إشارات أساسية</span></div><div><strong>22</strong><span>سؤالاً تدريبياً</span></div><div><strong>4</strong><span>مقالات عملية</span></div><div><strong>100%</strong><span>تعلم مجاني</span></div></div></section><section class="home-section shell"><div class="section-intro">${eyebrow('مسار التعلم')}<h2>كل ما تحتاجه<br /><span>في مكان واحد.</span></h2><p>من التعرف إلى الإشارة، إلى اتخاذ القرار الصحيح، ثم قياس جاهزيتك باختبار يحاكي المعرفة المطلوبة على الطريق.</p></div><div class="feature-grid"><a class="feature-card feature-large" href="#signals"><span class="feature-index">01</span><div><span class="feature-icon">◈</span><h3>مكتبة الإشارات</h3><p>صور حقيقية وشروحات عملية لأكثر الإشارات أهمية.</p><span class="text-link">استكشف المكتبة ←</span></div></a><a class="feature-card" href="#tests"><span class="feature-index">02</span><span class="feature-icon">✓</span><h3>اختبر معلوماتك</h3><p>أسئلة متنوعة مع نتيجة وتقدم محفوظين على جهازك.</p><span class="text-link">ابدأ الآن ←</span></a><a class="feature-card" href="#articles"><span class="feature-index">03</span><span class="feature-icon">▤</span><h3>مقالات ونصائح</h3><p>قراءة قصيرة تساعدك على بناء عادات قيادة آمنة.</p><span class="text-link">اقرأ وتعلم ←</span></a></div></section><section class="home-callout"><div class="shell callout-grid"><div class="callout-photo"><img src="assets/images/pedestrian-crossing.jpg" alt="إشارة عبور المشاة في الطريق" /></div><div>${eyebrow('قاعدة الطريق')}<h2>لا تحفظ الإشارة فقط.<br /><span>افهم القرار خلفها.</span></h2><p>كل إشارة تخبرك بما قد يحدث أمامك وتمنحك وقتاً للتصرف. خفف السرعة، راقب محيطك، واترك مساحة للآخرين.</p><a class="button light" href="#safety">تعلم قواعد الأمان ←</a></div></div></section>`; }
+function pageTitle(label,title,description){return `<section class="page-hero"><div class="shell page-hero-inner">${eyebrow(label)}<h1>${title}</h1><p>${description}</p></div></section>`;}
+function signalsPage(){ const list=filteredSigns(); return `${pageTitle('المكتبة البصرية','إشارات المرور','تعرّف على الإشارات الأساسية من خلال صور حقيقية، تصنيفات واضحة، وتصرف عملي لكل موقف.')}<section class="shell content-section"><div class="toolbar"><div class="filter-tabs"><button class="${activeFilter==='all'?'selected':''}" data-action="filter" data-filter="all">الكل <b>10</b></button><button class="${activeFilter==='warning'?'selected':''}" data-action="filter" data-filter="warning">تحذيرية <b>4</b></button><button class="${activeFilter==='regulatory'?'selected':''}" data-action="filter" data-filter="regulatory">تنظيمية <b>3</b></button><button class="${activeFilter==='mandatory'?'selected':''}" data-action="filter" data-filter="mandatory">إجبارية <b>2</b></button><button class="${activeFilter==='guidance'?'selected':''}" data-action="filter" data-filter="guidance">إرشادية <b>1</b></button></div><label class="search-field"><span>⌕</span><input id="sign-search" value="${escapeHTML(searchTerm)}" placeholder="ابحث: توقف، سرعة، مشاة" aria-label="البحث في الإشارات" /><button data-action="clear-search" aria-label="مسح البحث" ${searchTerm?'':'hidden'}>×</button></label></div><p class="result-count" aria-live="polite">عرض <strong>${list.length}</strong> من ${signs.length} إشارات</p>${list.length?`<div class="sign-grid">${list.map((sign,index)=>`<article class="sign-card accent-${categoryClass(sign)}"><div class="sign-media">${signVisual(sign)}<span class="number">${String(index+1).padStart(2,'0')}</span></div><div class="sign-body"><span class="pill">${sign.category}</span><h2>${sign.title}</h2><p>${sign.description}</p><button class="card-link" data-action="sign-details" data-sign-id="${sign.id}">عرض التفاصيل <span>←</span></button></div></article>`).join('')}</div>`:`<div class="empty-box"><strong>لا توجد نتائج مطابقة</strong><p>جرّب كلمة أخرى أو أعد عرض جميع الإشارات.</p><button class="button primary" data-action="reset-signs">إعادة الضبط</button></div>`}</section>`; }
+function rulesPage(){ return `${pageTitle('دليل عملي','قواعد القيادة التي تصنع الفرق','مبادئ قصيرة تساعدك على اتخاذ قرار هادئ ومسؤول في المواقف اليومية.')}<section class="shell content-section rules-layout"><div class="rules-main"><article class="rule-article"><span class="rule-number">01</span><div><h2>اقرأ الطريق قبل أن تتحرك</h2><p>وزّع نظرك بين المسار، المرايا، والإشارات. لا تنتظر ظهور الخطر أمام مقدمة السيارة حتى تبدأ التفكير.</p></div></article><article class="rule-article"><span class="rule-number">02</span><div><h2>المسافة تمنحك وقتاً</h2><p>اترك مسافة كافية خلف المركبة الأمامية، وزدها مع المطر والضباب والليل. الوقت الإضافي يحوّل المفاجأة إلى قرار ممكن.</p></div></article><article class="rule-article"><span class="rule-number">03</span><div><h2>لا تجعل الهاتف يقود بدلاً منك</h2><p>أي رسالة أو إشعار يمكن أن ينتظر. ضع الهاتف على وضع التركيز قبل التحرك، وتوقف في مكان آمن إذا احتجت إلى استخدامه.</p></div></article><article class="rule-article"><span class="rule-number">04</span><div><h2>الهدوء جزء من المهارة</h2><p>لا تعالج التأخر بالسرعة، ولا تستجيب لاستفزاز الطريق. القيادة المتوقعة والهادئة تحميك وتحمي الآخرين.</p></div></article></div><aside class="rules-aside"><div class="aside-card dark"><span>تذكّر</span><strong>السرعة المناسبة هي التي تسمح لك بالتوقف داخل المسافة التي تراها.</strong></div><div class="aside-card"><span>خطوة عملية</span><strong>قبل تشغيل السيارة: المقعد، المرايا، الحزام، الهاتف، والمسار.</strong></div></aside></section>`; }
+function safetyPage(){ return `${pageTitle('الأمان أولاً','نصائح قيادة لا تؤجلها','عادات صغيرة تقلل المخاطر وتجعلك أكثر استعداداً للمواقف غير المتوقعة.')}<section class="shell content-section safety-grid-page"><div class="safety-feature"><img src="assets/images/speed-limit.jpg" alt="إشارة سرعة في الطريق" /><div><span class="pill">قبل الانطلاق</span><h2>دقيقة واحدة من الاستعداد أفضل من ساعة من الندم.</h2><p>افحص الإطارات والوقود والمرايا، واضبط المقعد والحزام قبل تحريك السيارة.</p></div></div><div class="tip-list"><div class="tip"><b>01</b><h3>في المطر</h3><p>خفف السرعة، زد المسافة، وتجنب الكبح أو التوجيه المفاجئ.</p></div><div class="tip"><b>02</b><h3>في الضباب</h3><p>استخدم الإضاءة المناسبة وخفف السرعة وفق مدى الرؤية الفعلي.</p></div><div class="tip"><b>03</b><h3>مع المشاة</h3><p>توقع وجودهم خلف المركبات المتوقفة وبالقرب من المدارس والممرات.</p></div><div class="tip"><b>04</b><h3>عند التعب</h3><p>توقف واسترح. القهوة لا تعوّض النوم عندما تنخفض يقظتك.</p></div></div></section>`; }
+function articlesPage(){ return `${pageTitle('المعرفة العملية','مقالات ونصائح للقيادة','قراءات قصيرة بلغة بسيطة تساعدك على تحويل المعرفة إلى عادة.')}<section class="shell content-section"><div class="article-grid">${articles.map((article)=>`<article class="article-card"><div class="article-top"><span>${article.category}</span><small>${article.readTime}</small></div><h2>${article.title}</h2><p>${article.excerpt}</p><button class="card-link" data-action="article-details" data-article-id="${article.id}">اقرأ المقال <span>←</span></button></article>`).join('')}</div></section>`; }
+function testsPage(){ const history=getHistory(); const best=history.length?Math.max(...history.map(item=>item.percent)):0; return `${pageTitle('مركز التقييم','اختبر جاهزيتك','ابدأ باختبار الإشارات، ثم انتقل إلى اختبار متقدم يحاكي أسئلة رخصة السياقة.')}<section class="shell content-section"><div class="test-choice-grid"><article class="test-choice basic"><span class="test-number">01</span><span class="test-icon">◈</span><h2>اختبار الإشارات الأساسي</h2><p>10 أسئلة متنوعة تغطي الإشارات العشر المضافة إلى المكتبة، مع شرح بعد كل إجابة.</p><div class="test-meta"><span>10 أسئلة</span><span>مبتدئ</span><span>تقدم محفوظ</span></div><button class="button primary" data-action="start-test" data-mode="basic">ابدأ الاختبار ←</button></article><article class="test-choice advanced-choice"><span class="test-number">02</span><span class="test-icon">✦</span><h2>اختبار الرخصة المتقدم</h2><p>12 سؤالاً في المواقف والقرارات والمسافة والطقس، لتقييم جاهزيتك النظرية للقيادة.</p><div class="test-meta"><span>12 سؤالاً</span><span>متقدم</span><span>تقييم نهائي</span></div><button class="button dark" data-action="start-test" data-mode="advanced">ابدأ الاختبار المتقدم ←</button></article></div><div class="history-panel"><div class="history-heading"><div><span class="eyebrow">سجل التقدم</span><h2>نتائجك السابقة</h2></div><div class="best-score"><small>أفضل نتيجة</small><strong>${best}%</strong></div></div>${history.length?`<div class="history-table" role="table"><div class="history-row history-head"><span>الاختبار</span><span>النتيجة</span><span>التقدير</span><span>التاريخ</span></div>${history.map(item=>`<div class="history-row"><span>${item.mode==='advanced'?'اختبار الرخصة المتقدم':'اختبار الإشارات الأساسي'}</span><strong>${item.score}/${item.total}</strong><span class="score-${item.percent>=70?'good':'low'}">${item.percent>=85?'ممتاز':item.percent>=70?'جيد':'يحتاج مراجعة'}</span><small>${item.date}</small></div>`).join('')}</div><button class="text-button" data-action="clear-history">مسح سجل النتائج</button>`:`<div class="empty-history"><span>◌</span><p>لم تخض أي اختبار بعد. ابدأ الآن وسيظهر تقدمك هنا.</p></div>`}</div></section>`; }
+function testPage(){ if(!session)return testsPage(); const q=session.questions[session.index]; const answered=session.answers[session.index]; const progress=Math.round((session.index/session.questions.length)*100); const sign=q.signId?signs.find(item=>item.id===q.signId):null; return `<section class="test-screen"><div class="shell test-shell"><div class="test-top"><a class="back-link" href="#tests">← العودة إلى مركز التقييم</a><span>${session.mode==='advanced'?'اختبار الرخصة المتقدم':'اختبار الإشارات الأساسي'}</span></div><div class="progress-line"><div style="width:${progress}%"></div></div><div class="question-layout"><aside class="question-aside"><span class="eyebrow">السؤال ${session.index+1} من ${session.questions.length}</span><strong>${progress}%</strong><small>تقدم الاختبار</small><div class="question-dots">${session.questions.map((_,i)=>`<i class="${i<session.index?'done':''} ${i===session.index?'current':''}"></i>`).join('')}</div></aside><article class="question-card">${sign?`<div class="question-sign"><div class="sign-media">${signVisual(sign,true)}</div><span>${sign.category} · ${sign.english}</span></div>`:''}<span class="question-label">اختر الإجابة الصحيحة</span><h1>${q.question}</h1><div class="answer-list">${q.options.map((option,i)=>`<button class="answer ${answered!==undefined?(i===q.answer?'correct':i===answered?'wrong':'muted'):''}" data-action="answer" data-index="${i}" ${answered!==undefined?'disabled':''}><span>${String.fromCharCode(65+i)}</span>${option}</button>`).join('')}</div>${answered!==undefined?`<div class="answer-feedback ${answered===q.answer?'success':'error'}"><strong>${answered===q.answer?'إجابة صحيحة':'إجابة غير صحيحة'}</strong><p>${q.explanation}</p></div>`:''}<div class="question-actions">${answered!==undefined&&session.index<session.questions.length-1?`<button class="button primary" data-action="next-question">السؤال التالي ←</button>`:answered!==undefined?`<button class="button primary" data-action="finish-test">عرض النتيجة ←</button>`:''}</div></article></div></div></section>`; }
+function resultPage(result){return `<section class="result-screen"><div class="shell result-card"><span class="result-kicker">اكتمل الاختبار</span><div class="result-ring" style="--score:${result.percent*3.6}deg"><strong>${result.percent}%</strong><span>نتيجتك</span></div><h1>${result.percent>=85?'أداء ممتاز. أنت على الطريق الصحيح.':result.percent>=70?'نتيجة جيدة. راجع النقاط التي أخطأت فيها.':'واصل التدريب وستتحسن نتيجتك القادمة.'}</h1><p>أجبت عن <strong>${result.score}</strong> من أصل ${result.total} إجابات صحيحة.</p><div class="result-actions"><a class="button primary" href="#tests">العودة إلى مركز التقييم</a><button class="button secondary" data-action="retry-test">إعادة الاختبار</button></div></div></section>`; }
+function updateSEO(route){ const seo={home:['مدرسة السياقة | تعلم إشارات المرور واختبر جاهزيتك','منصة عربية لتعلم إشارات المرور وقواعد القيادة واختبار الجاهزية لرخصة السياقة.'],signals:['إشارات المرور | مدرسة السياقة','تعرف على إشارات المرور الأساسية من خلال صور حقيقية وتصرف عملي لكل موقف.'],rules:['قواعد القيادة | مدرسة السياقة','مبادئ عملية تساعدك على اتخاذ قرارات هادئة ومسؤولة على الطريق.'],safety:['نصائح الأمان | مدرسة السياقة','نصائح قيادة عملية للتعامل مع المطر والضباب والمشاة والتعب.'],articles:['مقالات القيادة الآمنة | مدرسة السياقة','مقالات عربية مختصرة عن السرعة ومسافة الأمان والقيادة الليلية.'],tests:['اختبارات إشارات المرور | مدرسة السياقة','اختبر معرفتك بإشارات المرور وتابع نتائجك وتقدمك على جهازك.'],advanced:['اختبار رخصة السياقة المتقدم | مدرسة السياقة','اختبار متقدم في مواقف القيادة والطقس والمسافة والقرارات الآمنة.'],test:['سؤال الاختبار | مدرسة السياقة','اختبار تفاعلي متدرج لتقييم معرفتك بقواعد المرور والقيادة الآمنة.'],result:['نتيجة الاختبار | مدرسة السياقة','راجع نتيجتك وتقدمك بعد إكمال الاختبار التفاعلي.']}[route]||null; if(!seo)return; document.title=seo[0]; const description=document.querySelector('meta[name="description"]'); if(description)description.setAttribute('content',seo[1]); const ogTitle=document.querySelector('meta[property="og:title"]'); if(ogTitle)ogTitle.setAttribute('content',seo[0]); const ogDescription=document.querySelector('meta[property="og:description"]'); if(ogDescription)ogDescription.setAttribute('content',seo[1]); }
+function render(){ currentRoute=getRoute(); updateSEO(currentRoute); if(currentRoute==='test') {shell(testPage());return} if(currentRoute==='result'&&session?.result){shell(resultPage(session.result));return} const pages={home:homePage,signals:signalsPage,rules:rulesPage,safety:safetyPage,articles:articlesPage,tests:testsPage,advanced:testsPage}; shell((pages[currentRoute]||homePage)()); }
+function startTest(mode){ session={mode,questions:mode==='advanced'?advancedQuestions:basicQuestions,index:0,answers:[],startedAt:Date.now()}; location.hash='#test'; }
+function answer(index){ if(!session||session.answers[session.index]!==undefined)return; session.answers[session.index]=Number(index); render(); }
+function nextQuestion(){ if(session&&session.index<session.questions.length-1){session.index+=1;render()} }
+function finishTest(){ if(!session)return; const score=session.answers.reduce((sum,answer,index)=>sum+(answer===session.questions[index].answer?1:0),0); const result={mode:session.mode,score,total:session.questions.length,percent:Math.round(score/session.questions.length*100),date:new Intl.DateTimeFormat('ar',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date())}; saveHistory(result);session.result=result;location.hash='#result'; }
+function showSign(id){const sign=signs.find(item=>item.id===id);if(!sign)return;document.querySelector('#modal-content').innerHTML=`<div class="modal-image">${signVisual(sign,true)}</div><div class="modal-copy"><span class="pill">${sign.category} · ${sign.english}</span><h2 id="modal-title">${sign.title}</h2><p>${sign.description}</p><div class="modal-action"><strong>التصرف الصحيح</strong><span>${sign.action}</span></div>${sign.source?`<a class="source" href="${sign.source}" target="_blank" rel="noreferrer">مصدر الصورة: ${sign.credit} ↗</a>`:''}</div>`;document.querySelector('#modal').hidden=false;document.body.classList.add('modal-open');}
+function showArticle(id){const article=articles.find(item=>item.id===id);if(!article)return;document.querySelector('#modal-content').innerHTML=`<div class="modal-copy article-modal"><span class="pill">${article.category} · ${article.readTime}</span><h2 id="modal-title">${article.title}</h2>${article.content.map(paragraph=>`<p>${paragraph}</p>`).join('')}<a class="source" href="#articles" data-action="close-modal">← العودة إلى المقالات</a></div>`;document.querySelector('#modal').hidden=false;document.body.classList.add('modal-open');}
+function closeModal(){const modalElement=document.querySelector('#modal');if(modalElement){modalElement.hidden=true;document.body.classList.remove('modal-open')}}
+document.addEventListener('click',(event)=>{const target=event.target.closest('[data-action]');if(!target)return;const action=target.dataset.action;if(action==='toggle-menu'){const nav=document.querySelector('#main-nav');const open=nav.classList.toggle('open');target.setAttribute('aria-expanded',String(open));}if(action==='filter'){activeFilter=target.dataset.filter;render();}if(action==='clear-search'){searchTerm='';render();}if(action==='reset-signs'){activeFilter='all';searchTerm='';render();}if(action==='sign-details')showSign(target.dataset.signId);if(action==='article-details')showArticle(target.dataset.articleId);if(action==='close-modal')closeModal();if(action==='start-test')startTest(target.dataset.mode);if(action==='answer')answer(target.dataset.index);if(action==='next-question')nextQuestion();if(action==='finish-test')finishTest();if(action==='retry-test'&&session){session={...session,index:0,answers:[],result:null};location.hash='#test';}if(action==='clear-history'){localStorage.removeItem(storeKey);render();}});
+document.addEventListener('input',(event)=>{if(event.target.id==='sign-search'){searchTerm=event.target.value;const cursor=event.target.selectionStart;render();const input=document.querySelector('#sign-search');if(input){input.focus();input.setSelectionRange(cursor,cursor)}}});
+window.addEventListener('hashchange',()=>{if(getRoute()!=='test'&&getRoute()!=='result')session=null;render()});
+render();
