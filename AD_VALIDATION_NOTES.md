@@ -23,3 +23,11 @@
 ## نتيجة التحقق
 
 نجح فحص الصياغة لملفي `app.js` و`assets/js/site-tags.js`، ونجح تدقيق الوسوم الصارم دون مخالفات. يوجد استدعاء واحد للمحمّل المركزي من `index.html`، ولا توجد تحميلات مباشرة لـ AdSense أو GTM أو Clarity في HTML. أُبقي معرّف AdSense المتوفر، واستُخدمت `xxxxxxxx` للمعرفات غير المتوفرة مع تعليقات عربية تحدد مكان إضافة كل معرّف.
+
+## تعريفات Google المضافة
+
+أضيف وسم تحقق Google مرة واحدة داخل `head`، وأضيفت نسخة GTM الرسمية `noscript` في بداية `body`. يحتوي المحمّل المركزي على `GTM-PDTBDSW9` و`G-R5C0SX63K3`، ويعمل حالياً بوضع `ga4Mode: 'direct'` لتوفير Google tag قابل للاكتشاف. إذا كان Google tag نفسه مفعلاً داخل حاوية GTM، يجب تغيير الوضع إلى `gtm` لتجنب تكرار `page_view`.
+
+## Google tag وGTM
+
+أضيف وسم `google-site-verification` مرة واحدة في `index.html`، وأضيفت نسخة GTM الرسمية `noscript` للحاوية `GTM-PDTBDSW9`. يشغّل `assets/js/site-tags.js` Google tag بمعرّف `G-R5C0SX63K3` في وضع `ga4Mode: 'direct'` لمعالجة اكتشاف الوسم، مع حواجز تمنع تحميل `gtag.js` أو دفع إعداد GA4 أكثر من مرة. إذا كان Google tag نفسه موجوداً داخل حاوية GTM، يجب تحويل الوضع إلى `gtm` قبل تفعيل القياس داخل الحاوية لتجنب `page_view` المكرر.

@@ -2,15 +2,17 @@
  * المحمّل المركزي لخدمات القياس والإعلانات.
  *
  * ملاحظات الإعداد:
- * - GTM هو المسار المعتمد لتشغيل GA4 وMicrosoft Clarity عند توفر معرّف الحاوية.
- * - لا نحمّل gtag.js مباشرة ولا ننفذ gtag('config') حتى لا تتكرر page_view.
+ * - وضع GA4 مضبوط صراحة في TAG_CONFIG: مباشر حالياً لاكتشاف Google tag، أو عبر GTM عند تغيير الوضع.
+ * - لا تستخدم وضع GA4 المباشر مع Google tag مكرر داخل GTM حتى لا تتكرر page_view.
  * - AdSense لا يُحمّل إلا عند وجود ins.adsbygoogle داخل الصفحة.
  */
 const TAG_CONFIG = Object.freeze({
-  // ضع هنا معرّف حاوية Google Tag Manager: GTM-XXXXXXX
-  gtmId: 'xxxxxxxx',
-  // ضع هنا معرّف Google Analytics 4 للتوثيق داخل GTM: G-XXXXXXXXXX
-  ga4Id: 'xxxxxxxx',
+  // معرّف حاوية Google Tag Manager.
+  gtmId: 'GTM-PDTBDSW9',
+  // معرّف Google Analytics 4 المقدم من المستخدم.
+  ga4Id: 'G-R5C0SX63K3',
+  // الوضع الحالي مباشر لتفادي رسالة عدم اكتشاف Google tag. غيّره إلى gtm إذا كان Google tag مفعلاً داخل GTM.
+  ga4Mode: 'direct',
   // معرّف AdSense المتوفر في إعدادات الموقع.
   adsenseClient: 'ca-pub-5656416032906373',
   // ضع هنا معرّف Microsoft Clarity: xxxxxxxxxx
@@ -18,6 +20,7 @@ const TAG_CONFIG = Object.freeze({
 });
 
 const ADSENSE_SRC = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+const GA4_SRC = 'https://www.googletagmanager.com/gtag/js';
 const loadedServices = new Set();
 const observedAdUnits = new WeakSet();
 const queuedAdUnits = new WeakSet();
@@ -57,12 +60,37 @@ function loadScript(source, attributes = {}) {
   });
 }
 
+function loadGA4() {
+  if (TAG_CONFIG.ga4Mode !== 'direct' || !isConfigured(TAG_CONFIG.ga4Id) || loadedServices.has('ga4')) return;
+  loadedServices.add('ga4');
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function gtagQueue(...args) {
+    window.dataLayer.push(args);
+  };
+  const ga4Source = `${GA4_SRC}?id=${encodeURIComponent(TAG_CONFIG.ga4Id)}`;
+  const alreadyLoaded = hasScriptSource(ga4Source);
+  if (!alreadyLoaded) {
+    window.gtag('js', new Date());
+    window.gtag('config', TAG_CONFIG.ga4Id);
+  }
+  loadScript(ga4Source).catch(() => {
+    loadedServices.delete('ga4');
+  });
+}
+
 function loadGTM() {
   if (!isConfigured(TAG_CONFIG.gtmId) || loadedServices.has('gtm')) return;
   loadedServices.add('gtm');
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
-  loadScript(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(TAG_CONFIG.gtmId)}`).catch(() => {
+  const gtmSource = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(TAG_CONFIG.gtmId)}`;
+  if (!hasScriptSource(gtmSource)) {
+    window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
+  }
+  // لا ترسل تعريف GA4 إلى GTM عندما يعمل Google tag المباشر لتفادي page_view المكرر.
+  if (TAG_CONFIG.ga4Mode === 'gtm' && isConfigured(TAG_CONFIG.ga4Id)) {
+    window.dataLayer.push({ event: 'site_config', analytics_id: TAG_CONFIG.ga4Id });
+  }
+  loadScript(gtmSource).catch(() => {
     loadedServices.delete('gtm');
   });
 }
@@ -180,21 +208,27 @@ function observeAdUnits() {
   });
 }
 
+let coreStarted = false;
+let appObserver = null;
+
 function start() {
-  // GA4 is intentionally documented in TAG_CONFIG and should be configured in GTM.
-  loadGTM();
-  loadClarity();
+  if (!coreStarted) {
+    coreStarted = true;
+    loadGA4();
+    loadGTM();
+    loadClarity();
+  }
   observeAdUnits();
 
   const appRoot = document.querySelector('#app');
-  if (appRoot && 'MutationObserver' in window) {
-    new MutationObserver(observeAdUnits).observe(appRoot, { childList: true, subtree: true });
+  if (appRoot && 'MutationObserver' in window && !appObserver) {
+    appObserver = new MutationObserver(observeAdUnits);
+    appObserver.observe(appRoot, { childList: true, subtree: true });
   }
 }
 
 window.siteTags = Object.freeze({ config: TAG_CONFIG, start });
+start();
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', start, { once: true });
-} else {
-  start();
 }
