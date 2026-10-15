@@ -17,8 +17,37 @@ function saveHistory(entry){ const history=[entry,...getHistory()].slice(0,12); 
 function categoryClass(sign){ return sign.categoryKey || 'guidance'; }
 function signVisual(sign, large=false){ if(sign.image)return `<img src="${sign.image}" alt="${escapeHTML(sign.alt)}" loading="lazy" />`; return `<div class="illustration tone-${sign.tone} ${large?'illustration-large':''}" role="img" aria-label="تمثيل بصري لإشارة ${escapeHTML(sign.title)}"><span>${sign.symbol}</span><small>${sign.english}</small></div>`; }
 function filteredSigns(){ const q=searchTerm.trim().toLocaleLowerCase('ar'); return signs.filter((sign)=>{const filterOK=activeFilter==='all'||sign.categoryKey===activeFilter;const text=`${sign.title} ${sign.english} ${sign.description}`.toLocaleLowerCase('ar');return filterOK&&(!q||text.includes(q))}); }
-function header(){ return `<header class="site-header"><div class="shell header-inner"><a class="brand" href="#home" aria-label="مدرسة السياقة"><span class="brand-icon">⌁</span><span><strong>مدرسة السياقة</strong><small>تعلم. تدرب. قد بأمان.</small></span></a><button class="mobile-menu" data-action="toggle-menu" aria-expanded="false" aria-controls="main-nav">القائمة <span>☰</span></button><nav id="main-nav" class="main-nav" aria-label="التنقل الرئيسي">${Object.entries(routeLabels).filter(([key])=>!['advanced'].includes(key)).map(([key,label])=>`<a class="${currentRoute===key?'active':''}" href="#${key}">${label}</a>`).join('')}<a class="nav-cta" href="#tests">ابدأ اختبارك <span>←</span></a></nav></div></header>`; }
-function footer(){ return `<footer class="site-footer"><div class="shell footer-grid"><div class="footer-about"><a class="brand footer-brand" href="#home"><span class="brand-icon">⌁</span><strong>مدرسة السياقة</strong></a><p>منصة عربية تساعدك على فهم إشارات المرور وبناء عادات قيادة أكثر أماناً، خطوة بعد خطوة.</p><div class="footer-badges"><span>تعلم مجاني</span><span>صور واقعية</span></div></div><div><h3>استكشف المنصة</h3><a href="#signals">إشارات المرور</a><a href="#rules">قواعد القيادة</a><a href="#safety">نصائح الأمان</a><a href="#articles">المقالات</a></div><div><h3>اختبر جاهزيتك</h3><a href="#tests">الاختبار الأساسي</a><a href="#advanced">اختبار رخصة السياقة</a><a href="#tests">تتبع النتائج</a><a href="#home">عن المنصة</a></div></div><div class="shell footer-bottom"><span>© 2026 مدرسة السياقة</span><span>صُممت للتعلم المسؤول والقيادة الآمنة</span></div></footer>`; }
+
+const navIconShapes = {
+  home: '<path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/>',
+  signals: '<rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="7" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17" r="1.5"/>',
+  rules: '<path d="M12 7C9 5 5 5 2 6v14c3-1 7-1 10 1 3-2 7-2 10-1V6c-3-1-7-1-10 1Z"/><path d="M12 7v14"/>',
+  safety: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+  articles: '<path d="M4 3h13v17H6a2 2 0 0 1-2-2V3Z"/><path d="M17 7h3v11a2 2 0 0 1-2 2H6"/><path d="M7 7h7v4H7z"/><path d="M7 15h7"/>',
+  tests: '<rect x="5" y="4" width="14" height="18" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
+  advanced: '<path d="m2 9 10-5 10 5-10 5-10-5Z"/><path d="M6 11v5c3 3 9 3 12 0v-5"/><path d="M22 9v6"/>',
+  progress: '<path d="M3 3v18h18"/><path d="m7 16 4-4 3 2 5-6"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 11v5"/><path d="M12 7h.01"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  close: '<path d="M5 5l14 14M19 5 5 19"/>'
+};
+function navIcon(name, extraClass = '') {
+  return `<svg class="nav-icon ${extraClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${navIconShapes[name] || navIconShapes.info}</svg>`;
+}
+function footerNavLink(href, label, icon) {
+  return `<a href="${href}">${navIcon(icon)}<span>${label}</span></a>`;
+}
+
+function header(){
+  const activeRoute = ['advanced', 'test', 'result'].includes(currentRoute) ? 'tests' : currentRoute;
+  const links = Object.entries(routeLabels).filter(([key]) => key !== 'advanced').map(([key, label]) =>
+    `<a class="${activeRoute === key ? 'active' : ''}" href="#${key}" ${activeRoute === key ? 'aria-current="page"' : ''}>${navIcon(key)}${label}</a>`
+  ).join('');
+  return `<header class="site-header"><div class="shell header-inner"><a class="brand" href="#home" aria-label="مدرسة السياقة - الرئيسية"><span class="brand-icon">${navIcon('signals')}</span><span><strong>مدرسة السياقة</strong><small>تعلم. تدرب. قد بأمان.</small></span></a><button type="button" class="mobile-menu" data-action="toggle-menu" aria-label="فتح القائمة" aria-expanded="false" aria-controls="main-nav"><span class="mobile-menu-label">القائمة</span>${navIcon('menu','menu-icon-open')}${navIcon('close','menu-icon-close')}</button><nav id="main-nav" class="main-nav" aria-label="التنقل الرئيسي">${links}<a class="nav-cta" href="#tests">${navIcon('tests')}ابدأ اختبارك</a></nav></div></header>`;
+}
+function footer(){
+  return `<footer class="site-footer"><div class="shell footer-grid"><div class="footer-about"><a class="brand footer-brand" href="#home"><span class="brand-icon">${navIcon('signals')}</span><strong>مدرسة السياقة</strong></a><p>منصة عربية تساعدك على فهم إشارات المرور وبناء عادات قيادة أكثر أماناً، خطوة بعد خطوة.</p><div class="footer-badges"><span>تعلم مجاني</span><span>صور واقعية</span></div></div><div class="footer-links"><h3>استكشف المنصة</h3>${footerNavLink('#signals','إشارات المرور','signals')}${footerNavLink('#rules','قواعد القيادة','rules')}${footerNavLink('#safety','نصائح الأمان','safety')}${footerNavLink('#articles','المقالات','articles')}</div><div class="footer-links"><h3>اختبر جاهزيتك</h3>${footerNavLink('#tests','الاختبار الأساسي','tests')}${footerNavLink('#advanced','اختبار رخصة السياقة','advanced')}${footerNavLink('#tests','تتبع النتائج','progress')}${footerNavLink('#home','عن المنصة','info')}</div></div><div class="shell footer-bottom"><span>© 2026 مدرسة السياقة</span><span>صُممت للتعلم المسؤول والقيادة الآمنة</span></div></footer>`;
+}
 function modal(){ return `<div class="modal" id="modal" hidden><div class="modal-backdrop" data-action="close-modal"></div><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" data-action="close-modal" aria-label="إغلاق">×</button><div id="modal-content"></div></div></div>`; }
 function shell(content){ app.innerHTML=`${header()}<main id="page-content">${content}</main>${footer()}${modal()}`; window.scrollTo({top:0,behavior:'instant'}); }
 function eyebrow(text){ return `<p class="eyebrow"><span></span>${text}</p>`; }
@@ -40,7 +69,28 @@ function finishTest(){ if(!session)return; const score=session.answers.reduce((s
 function showSign(id){const sign=signs.find(item=>item.id===id);if(!sign)return;document.querySelector('#modal-content').innerHTML=`<div class="modal-image">${signVisual(sign,true)}</div><div class="modal-copy"><span class="pill">${sign.category} · ${sign.english}</span><h2 id="modal-title">${sign.title}</h2><p>${sign.description}</p><div class="modal-action"><strong>التصرف الصحيح</strong><span>${sign.action}</span></div>${sign.source?`<a class="source" href="${sign.source}" target="_blank" rel="noreferrer">مصدر الصورة: ${sign.credit} ↗</a>`:''}</div>`;document.querySelector('#modal').hidden=false;document.body.classList.add('modal-open');}
 function showArticle(id){const article=articles.find(item=>item.id===id);if(!article)return;document.querySelector('#modal-content').innerHTML=`<div class="modal-copy article-modal"><span class="pill">${article.category} · ${article.readTime}</span><h2 id="modal-title">${article.title}</h2>${article.content.map(paragraph=>`<p>${paragraph}</p>`).join('')}${adMarkup('article02')}<a class="source" href="#articles" data-action="close-modal">← العودة إلى المقالات</a></div>`;document.querySelector('#modal').hidden=false;document.body.classList.add('modal-open');}
 function closeModal(){const modalElement=document.querySelector('#modal');if(modalElement){modalElement.hidden=true;document.body.classList.remove('modal-open')}}
-document.addEventListener('click',(event)=>{const target=event.target.closest('[data-action]');if(!target)return;const action=target.dataset.action;if(action==='toggle-menu'){const nav=document.querySelector('#main-nav');const open=nav.classList.toggle('open');target.setAttribute('aria-expanded',String(open));}if(action==='filter'){activeFilter=target.dataset.filter;render();}if(action==='clear-search'){searchTerm='';render();}if(action==='reset-signs'){activeFilter='all';searchTerm='';render();}if(action==='sign-details')showSign(target.dataset.signId);if(action==='article-details')showArticle(target.dataset.articleId);if(action==='close-modal')closeModal();if(action==='start-test')startTest(target.dataset.mode);if(action==='answer')answer(target.dataset.index);if(action==='next-question')nextQuestion();if(action==='finish-test')finishTest();if(action==='retry-test'&&session){session={...session,index:0,answers:[],result:null};location.hash='#test';}if(action==='clear-history'){localStorage.removeItem(storeKey);render();}});
+document.addEventListener('click',(event)=>{const target=event.target.closest('[data-action]');if(!target)return;const action=target.dataset.action;if(action==='toggle-menu'){const nav=document.querySelector('#main-nav');const open=nav.classList.toggle('open');target.setAttribute('aria-expanded',String(open));target.setAttribute('aria-label',open?'إغلاق القائمة':'فتح القائمة');}if(action==='filter'){activeFilter=target.dataset.filter;render();}if(action==='clear-search'){searchTerm='';render();}if(action==='reset-signs'){activeFilter='all';searchTerm='';render();}if(action==='sign-details')showSign(target.dataset.signId);if(action==='article-details')showArticle(target.dataset.articleId);if(action==='close-modal')closeModal();if(action==='start-test')startTest(target.dataset.mode);if(action==='answer')answer(target.dataset.index);if(action==='next-question')nextQuestion();if(action==='finish-test')finishTest();if(action==='retry-test'&&session){session={...session,index:0,answers:[],result:null};location.hash='#test';}if(action==='clear-history'){localStorage.removeItem(storeKey);render();}});
+
+function closeMobileNav() {
+  const nav = document.querySelector('#main-nav');
+  const button = document.querySelector('.mobile-menu');
+  if (!nav || !button) return;
+  nav.classList.remove('open');
+  button.setAttribute('aria-expanded', 'false');
+  button.setAttribute('aria-label', 'فتح القائمة');
+}
+document.addEventListener('click', (event) => {
+  const nav = document.querySelector('#main-nav');
+  if (!nav?.classList.contains('open') || event.target.closest('[data-action="toggle-menu"]')) return;
+  if (event.target.closest('#main-nav a') || !event.target.closest('.site-header')) closeMobileNav();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeMobileNav();
+});
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 1080) closeMobileNav();
+}, { passive: true });
+
 document.addEventListener('input',(event)=>{if(event.target.id==='sign-search'){searchTerm=event.target.value;const cursor=event.target.selectionStart;render();const input=document.querySelector('#sign-search');if(input){input.focus();input.setSelectionRange(cursor,cursor)}}});
 window.addEventListener('hashchange',()=>{if(getRoute()!=='test'&&getRoute()!=='result')session=null;render()});
 render();
